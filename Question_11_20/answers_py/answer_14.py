@@ -23,8 +23,8 @@ def different_filter(img, K_size=3):
 
 	# Zero padding
 	pad = K_size // 2
-	out = np.zeros((H + pad * 2, W + pad * 2), dtype=np.float)
-	out[pad: pad + H, pad: pad + W] = gray.copy().astype(np.float)
+	out = np.zeros((H + pad * 2, W + pad * 2, C), dtype=np.float)
+	out[pad: pad + H, pad: pad + W] = img.copy().astype(np.float)
 	tmp = out.copy()
 
 	out_v = out.copy()
@@ -38,8 +38,9 @@ def different_filter(img, K_size=3):
 	# filtering
 	for y in range(H):
 		for x in range(W):
-			out_v[pad + y, pad + x] = np.sum(Kv * (tmp[y: y + K_size, x: x + K_size]))
-			out_h[pad + y, pad + x] = np.sum(Kh * (tmp[y: y + K_size, x: x + K_size]))
+			for c in range(C):
+				out_v[pad + y, pad + x, c] = np.sum(Kv * (tmp[y: y + K_size, x: x + K_size, c]))
+				out_h[pad + y, pad + x, c] = np.sum(Kh * (tmp[y: y + K_size, x: x + K_size, c]))
 
 	out_v = np.clip(out_v, 0, 255)
 	out_h = np.clip(out_h, 0, 255)
