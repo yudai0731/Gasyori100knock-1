@@ -68,7 +68,7 @@ def ootu_binary(img):
         
     best_th = np.argmax(sb_list)
     print("best threshold =%d"%(best_th))
-    return gen_binary(img,best_th)
+    return binary(img,best_th)
 
 def rgb2hsv(img):
     """transform RGB image to HSV image
@@ -492,7 +492,7 @@ def angle_quantization(angle):
 
     return _angle
 
-def non_maximum_suppression(angle, edge):
+def non_maximum_suppression1(angle, edge):
     H, W = angle.shape
     _edge = edge.copy()
 
@@ -523,6 +523,31 @@ def non_maximum_suppression(angle, edge):
 
     return _edge
 
+def non_maximum_suppression2(hough):
+    rmax,_ = hough.shape
+
+    for y in range(rmax):
+        for x in range(180):
+            # x,yが行列からはみ出さないように調整
+            x1 = max(x-1,0)
+            x2 = min(x+2,180)
+            y1 = max(y-1,0)
+            y2 = min(y+2,rmax-1) 
+            # 注目画素と8近傍のvoteの最大値が注目画素でかつ0でないとき
+            if np.max(hough[y1:y2, x1:x2]) == hough[y,x] and hough[y, x] != 0:
+                pass
+            else :
+                hough[y,x]=0
+
+    # 上位20voteを取得
+    ind_x = np.argsort(hough.ravel())[::-1][:20]
+    ind_y = ind_x.copy()
+    thetas = ind_x % 180
+    rhos = ind_y // 180
+    _hough = np.zeros_like(hough, dtype=np.int)
+    _hough[rhos, thetas] = 255
+    return _hough
+
 def hysterisis(edge, HT=100, LT=30):
     H, W = edge.shape
 
@@ -548,3 +573,80 @@ def hysterisis(edge, HT=100, LT=30):
     edge = _edge[1:H+1, 1:W+1]
                                 
     return edge
+
+def hough_transform(edge):
+    H,W = edge.shape
+    rmax = np.sqrt(H**2 + W**2).astype(np.int)
+
+    hough = np.zeros((rmax*2,180),dtype=np.int)
+    ind = np.where(edge == 255) # edgeのインデックス
+
+    # すべてのedgeについて
+    for y,x in zip(ind[0],ind[1]):
+        # 0から180度について
+        for theta in range(0,180,1):
+            t = np.pi / 180 * theta
+            rho = int(x * np.cos(t) + y * np.sin(t))
+            hough[rho + rmax, theta] += 1
+    out = hough.astype(np.uint8)
+    return out
+
+def inverse_hough(hough,img):
+    H,W,_ = img.shape
+    rmax,_ = hough.shape
+
+    out = img.copy()
+
+    # 上位20voteを取得
+    ind_x = np.argsort(hough.ravel())[::-1][:20]
+    ind_y = ind_x.copy()
+    thetas = ind_x % 180
+    rhos = ind_y // 180 -rmax/2
+
+    for theta, rho in zip(thetas,rhos):
+        t = np.pi/180 *theta
+
+        for x in range(W):
+            if np.sin(t)!=0:
+                y = - (np.cos(t) / np.sin(t)) * x + (rho) / np.sin(t)
+                y = int(y)
+                if y >= H or y < 0:
+                    continue
+                out[y, x] = [0, 0, 255]
+
+        for y in range(H):
+            if np.cos(t) != 0:
+                x = - (np.sin(t) / np.cos(t)) * y + (rho) / np.cos(t)
+                x = int(x)
+                if x >= W or x < 0:
+                    continue
+                out[y, x] = [0, 0, 255]
+    
+    out = out.astype(np.uint8)
+    return out
+
+def morphology_expand(img):
+    H,W = img.shape
+
+    out = np.copy(img)
+    for y in range(1,H-1):
+        for x in range(1,W-1):
+            if img[y,x]==0:
+                tmp_l = [img[y-1,x],img[y,x-1],img[y,x+1],img[y+1,x]]
+                if max(tmp_l) == 255:
+                    out[y,x] = 255
+
+    return out
+
+def morphology_shrinkage(img):
+    H,W = img.shape
+
+    out = np.copy(img)
+    for y in range(1,H-1):
+        for x in range(1,W-1):
+            if img[y,x]==255:
+                tmp_l = [img[y-1,x],img[y,x-1],img[y,x+1],img[y+1,x]]
+                if min(tmp_l) == 0:
+                    out[y,x] = 0
+
+    return out    
