@@ -2,21 +2,7 @@ import cv2
 import numpy as np
 
 def grayscale(img):
-    """generate grayscale image
-    
-    Args:
-    img : image array (3D)
-
-    Returns:
-    gray : image array (1D)
-    """
-    green = img[:,:,0]
-    blue = img[:,:,1]
-    red = img[:,:,2]
-    
-    gray =  0.2126*red + 0.7152*green + 0.0722*blue
-    
-    gray = gray.astype(np.uint8)
+    gray = 0.2126 * img[..., 2] + 0.7152 * img[..., 1] + 0.0722 * img[..., 0]
     return gray
 
 def binary(img,th=128):
