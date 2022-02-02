@@ -56,36 +56,35 @@ def ootu_binary(img):
     print("best threshold =%d"%(best_th))
     return binary(img,best_th)
 
-def rgb2hsv(img):
-    """transform RGB image to HSV image
-    
-    """
-    img = img/255
-    hsv = np.zeros_like(img, dtype=np.float32)
-    
-    max_v = np.max(img,axis=2)
-    min_v = np.min(img,axis=2)
-    min_arg = np.argmin(img,axis=2)
-    
-    # Hの計算 ...は次元を省略して書く記法
-    hsv[...,0][np.where(max_v==min_v)]=0
-    ## if min == B
-    ind = np.where(min_arg == 0)
-    hsv[..., 0][ind] = 60 * (img[..., 1][ind] - img[..., 2][ind]) / (max_v[ind] - min_v[ind]) + 60
-    ## if min == R
-    ind = np.where(min_arg == 2)
-    hsv[..., 0][ind] = 60 * (img[..., 0][ind] - img[..., 1][ind]) / (max_v[ind] - min_v[ind]) + 180
-    ## if min == G
-    ind = np.where(min_arg == 1)
-    hsv[..., 0][ind] = 60 * (img[..., 2][ind] - img[..., 0][ind]) / (max_v[ind] - min_v[ind]) + 300
-    
-    # Sの計算
-    hsv[...,1] = max_v-min_v
-    
-    # Vの計算
-    hsv[...,2] = max_v
-    
-    return hsv
+def rgb2hsv(_img):
+	img = _img.copy() / 255.
+
+	hsv = np.zeros_like(img, dtype=np.float32)
+
+	# get max and min
+	max_v = np.max(img, axis=2).copy()
+	min_v = np.min(img, axis=2).copy()
+	min_arg = np.argmin(img, axis=2)
+
+	# H
+	hsv[..., 0][np.where(max_v == min_v)]= 0
+	## if min == B
+	ind = np.where(min_arg == 0)
+	hsv[..., 0][ind] = 60 * (img[..., 1][ind] - img[..., 2][ind]) / (max_v[ind] - min_v[ind]) + 60
+	## if min == R
+	ind = np.where(min_arg == 2)
+	hsv[..., 0][ind] = 60 * (img[..., 0][ind] - img[..., 1][ind]) / (max_v[ind] - min_v[ind]) + 180
+	## if min == G
+	ind = np.where(min_arg == 1)
+	hsv[..., 0][ind] = 60 * (img[..., 2][ind] - img[..., 0][ind]) / (max_v[ind] - min_v[ind]) + 300
+		
+	# S
+	hsv[..., 1] = max_v.copy() - min_v.copy()
+
+	# V
+	hsv[..., 2] = max_v.copy()
+	
+	return hsv
     
 def hsv2rgb(img):
     """transform HSV image to RGB image
