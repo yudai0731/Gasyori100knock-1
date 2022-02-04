@@ -147,41 +147,29 @@ def max_pooling(img):
                 
     return out.astype(np.uint8)
 
-def gaussian_filter(img, K_size=3, sigma=1.3):
-    if len(img.shape) == 3:
-        H, W, C = img.shape
-    else:
-        img = np.expand_dims(img, axis=-1)
-        H, W, C = img.shape
+def gaussian_filter(I, K_size=3, sigma=3):
+	# get shape
+	H, W = I.shape
 
-    ## Zero padding
-    pad = K_size // 2
-    out = np.zeros([H + pad * 2, W + pad * 2, C], dtype=np.float)
-    out[pad: pad + H, pad: pad + W] = img.copy().astype(np.float)
+	## gaussian
+	I_t = np.pad(I, (K_size // 2, K_size // 2), 'edge')
 
-    ## prepare Kernel
-    K = np.zeros((K_size, K_size), dtype=np.float)
-    for x in range(-pad, -pad + K_size):
-        for y in range(-pad, -pad + K_size):
-            K[y + pad, x + pad] = np.exp( - (x ** 2 + y ** 2) / (2 * (sigma ** 2)))
-    #K /= (sigma * np.sqrt(2 * np.pi))
-    K /= (2 * np.pi * sigma * sigma)
-    K /= K.sum()
+	# gaussian kernel
+	K = np.zeros((K_size, K_size), dtype=np.float)
+	for x in range(K_size):
+		for y in range(K_size):
+			_x = x - K_size // 2
+			_y = y - K_size // 2
+			K[y, x] = np.exp( -(_x ** 2 + _y ** 2) / (2 * (sigma ** 2)))
+	K /= (sigma * np.sqrt(2 * np.pi))
+	K /= K.sum()
 
-    tmp = out.copy()
-
-    # filtering
-    for y in range(H):
-        for x in range(W):
-            for c in range(C):
-                out[pad + y, pad + x, c] = np.sum(K * tmp[y : y + K_size, x : x + K_size, c])
-
-    out = np.clip(out, 0, 255)
-    out = out[pad : pad + H, pad : pad + W]
-    out = out.astype(np.uint8)
-    out = out[..., 0]
-
-    return out
+	# filtering
+	for y in range(H):
+		for x in range(W):
+			I[y,x] = np.sum(I_t[y : y + K_size, x : x + K_size] * K)
+				
+	return I
 
 def median_filter(img):
     """filtering 3x3 median filter
@@ -245,6 +233,38 @@ def sobel_filter(img,v="x"):
         return cv2.filter2D(img,-1,K_y)
     else :
         return -1
+
+def sobel_filter2(gray):
+	# get shape
+	H, W = gray.shape
+
+	# sobel kernel
+	sobely = np.array(((1, 2, 1),
+					(0, 0, 0),
+					(-1, -2, -1)), dtype=np.float32)
+
+	sobelx = np.array(((1, 0, -1),
+					(2, 0, -2),
+					(1, 0, -1)), dtype=np.float32)
+
+	# padding
+	tmp = np.pad(gray, (1, 1), 'edge')
+
+	# prepare
+	Ix = np.zeros_like(gray, dtype=np.float32)
+	Iy = np.zeros_like(gray, dtype=np.float32)
+
+	# get differential
+	for y in range(H):
+		for x in range(W):
+			Ix[y, x] = np.mean(tmp[y : y  + 3, x : x + 3] * sobelx)
+			Iy[y, x] = np.mean(tmp[y : y + 3, x : x + 3] * sobely)
+			
+	Ix2 = Ix ** 2
+	Iy2 = Iy ** 2
+	Ixy = Ix * Iy
+
+	return Ix2, Iy2, Ixy
 
 def prewitt_filter(img,v="x"):
     """filtering 3x3 prewitt filter
